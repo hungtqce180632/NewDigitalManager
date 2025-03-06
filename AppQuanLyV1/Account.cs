@@ -10,6 +10,8 @@ namespace AppQuanLyV1
     {
         public string Email { get; set; }
         public int CustomerCount { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime ExpireDate { get; set; }
+        public bool IsExpired => DateTime.Now > ExpireDate;
     }
-
 }

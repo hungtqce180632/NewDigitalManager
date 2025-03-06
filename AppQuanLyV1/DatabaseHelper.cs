@@ -52,39 +52,6 @@ namespace AppQuanLyV1
             }
         }
 
-        // Insert account data from the file
-        public void InsertAccountDataFromFile(string filePath)
-        {
-            var lines = System.IO.File.ReadLines(filePath);
-            foreach (var line in lines.Skip(1)) // Skip the header
-            {
-                var fields = line.Split(',');
-                if (fields.Length >= 2)
-                {
-                    var account = new Account
-                    {
-                        Email = fields[0],
-                        CustomerCount = Convert.ToInt32(fields[1])
-                    };
-
-                    InsertAccount(account);
-                }
-            }
-        }
-
-        private void InsertAccount(Account account)
-        {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-                string query = "INSERT INTO Accounts (Email, CustomerCount) VALUES (@Email, @CustomerCount)";
-                SqlCommand command = new SqlCommand(query, connection);
-                command.Parameters.AddWithValue("@Email", account.Email);
-                command.Parameters.AddWithValue("@CustomerCount", account.CustomerCount);
-                command.ExecuteNonQuery();
-            }
-        }
-
         // Method to get all customers
         public List<Customer> GetAllCustomers()
         {
@@ -93,7 +60,28 @@ namespace AppQuanLyV1
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM Customers";
+                
+                // First, check if the ContinueSubscription column exists
+                bool columnExists = false;
+                string checkColumnQuery = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Customers' AND COLUMN_NAME = 'ContinueSubscription'";
+                using (SqlCommand checkCommand = new SqlCommand(checkColumnQuery, connection))
+                {
+                    int columnCount = (int)checkCommand.ExecuteScalar();
+                    columnExists = columnCount > 0;
+                }
+
+                // Prepare the query based on whether the column exists
+                string query;
+                if (columnExists)
+                {
+                    // Only show customers with ContinueSubscription = 1 or NULL
+                    query = "SELECT *, ISNULL(ContinueSubscription, 1) AS ContinueStatus FROM Customers WHERE ISNULL(ContinueSubscription, 1) = 1";
+                }
+                else
+                {
+                    query = "SELECT *, 1 AS ContinueStatus FROM Customers";
+                }
+                
                 SqlCommand command = new SqlCommand(query, connection);
                 SqlDataReader reader = command.ExecuteReader();
 
@@ -106,15 +94,14 @@ namespace AppQuanLyV1
                         SubscriptionPackage = reader["Package"].ToString(),
                         RegisterDay = Convert.ToDateTime(reader["RegistrationDate"]),
                         SubscriptionExpiry = Convert.ToDateTime(reader["ExpirationDate"]),
-                        Note = reader["AccountEmail"].ToString()
-                        // Bỏ qua LastActivity vì không có trong cơ sở dữ liệu
+                        Note = reader["AccountEmail"].ToString(),
+                        ContinueSubscription = Convert.ToBoolean(reader["ContinueStatus"])
                     });
                 }
             }
 
             return customers;
         }
-
 
         // Method to export customer data to CSV
         public void ExportCustomersToCsv(string filePath)
@@ -144,7 +131,6 @@ namespace AppQuanLyV1
                 string query = "UPDATE Customers SET FacebookLink = @FacebookLink, Package = @Package, RegistrationDate = @RegistrationDate, ExpirationDate = @ExpirationDate, AccountEmail = @AccountEmail WHERE ID = @ID";
                 SqlCommand command = new SqlCommand(query, connection);
 
-                // Cập nhật thông tin khách hàng
                 command.Parameters.AddWithValue("@FacebookLink", customer.Name);
                 command.Parameters.AddWithValue("@Package", customer.SubscriptionPackage);
                 command.Parameters.AddWithValue("@RegistrationDate", customer.RegisterDay);
@@ -152,7 +138,6 @@ namespace AppQuanLyV1
                 command.Parameters.AddWithValue("@AccountEmail", customer.Note);
                 command.Parameters.AddWithValue("@ID", customer.Id);
 
-                // Thực hiện cập nhật
                 command.ExecuteNonQuery();
             }
         }
@@ -164,14 +149,10 @@ namespace AppQuanLyV1
                 connection.Open();
                 string query = "DELETE FROM Customers WHERE ID = @ID";
                 SqlCommand command = new SqlCommand(query, connection);
-
-                // Thực hiện xóa khách hàng
                 command.Parameters.AddWithValue("@ID", customerId);
                 command.ExecuteNonQuery();
             }
         }
-
-
 
         // Method to get expired customers
         public List<Customer> GetExpiredCustomers()
@@ -181,26 +162,95 @@ namespace AppQuanLyV1
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM Customers WHERE ExpirationDate <= GETDATE()"; // Get customers whose subscription has expired
-                SqlCommand command = new SqlCommand(query, connection);
-                SqlDataReader reader = command.ExecuteReader();
-
-                while (reader.Read())
+                
+                // First, check if the ContinueSubscription column exists
+                bool columnExists = false;
+                string checkColumnQuery = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Customers' AND COLUMN_NAME = 'ContinueSubscription'";
+                using (SqlCommand checkCommand = new SqlCommand(checkColumnQuery, connection))
                 {
-                    expiredCustomers.Add(new Customer
+                    int columnCount = (int)checkCommand.ExecuteScalar();
+                    columnExists = columnCount > 0;
+                }
+
+                // Prepare the query based on whether the column exists
+                string query;
+                if (columnExists)
+                {
+                    query = "SELECT *, ISNULL(ContinueSubscription, 1) AS ContinueStatus FROM Customers WHERE ExpirationDate <= GETDATE()";
+                }
+                else
+                {
+                    query = "SELECT *, 1 AS ContinueStatus FROM Customers WHERE ExpirationDate <= GETDATE()";
+                }
+                
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        Id = Convert.ToInt32(reader["ID"]),
-                        Name = reader["FacebookLink"].ToString(),
-                        SubscriptionPackage = reader["Package"].ToString(),
-                        RegisterDay = Convert.ToDateTime(reader["RegistrationDate"]),
-                        SubscriptionExpiry = Convert.ToDateTime(reader["ExpirationDate"]),
-                        // Bỏ qua LastActivity vì không có trong cơ sở dữ liệu
-                        Note = reader["AccountEmail"].ToString()
-                    });
+                        while (reader.Read())
+                        {
+                            expiredCustomers.Add(new Customer
+                            {
+                                Id = Convert.ToInt32(reader["ID"]),
+                                Name = reader["FacebookLink"].ToString(),
+                                SubscriptionPackage = reader["Package"].ToString(),
+                                RegisterDay = Convert.ToDateTime(reader["RegistrationDate"]),
+                                SubscriptionExpiry = Convert.ToDateTime(reader["ExpirationDate"]),
+                                Note = reader["AccountEmail"].ToString(),
+                                ContinueSubscription = Convert.ToBoolean(reader["ContinueStatus"])
+                            });
+                        }
+                    }
                 }
             }
 
             return expiredCustomers;
+        }
+        
+        // Renew customer subscription
+        public void RenewCustomerSubscription(int customerId, string package, DateTime renewalDate)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                
+                using (SqlTransaction transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        // Calculate new expiration date based on package
+                        int months = 1;
+                        if (package.StartsWith("goi"))
+                        {
+                            string numberPart = package.Substring(3);
+                            if (int.TryParse(numberPart, out int packageMonths))
+                            {
+                                months = packageMonths;
+                            }
+                        }
+                        
+                        DateTime newExpirationDate = renewalDate.AddMonths(months);
+                        
+                        // Update customer with new package, registration date, expiration date, and reset ContinueSubscription to true
+                        string query = "UPDATE Customers SET Package = @Package, RegistrationDate = @RegistrationDate, " +
+                                      "ExpirationDate = @ExpirationDate, ContinueSubscription = 1 WHERE ID = @ID";
+                        
+                        SqlCommand command = new SqlCommand(query, connection, transaction);
+                        command.Parameters.AddWithValue("@Package", package);
+                        command.Parameters.AddWithValue("@RegistrationDate", renewalDate);
+                        command.Parameters.AddWithValue("@ExpirationDate", newExpirationDate);
+                        command.Parameters.AddWithValue("@ID", customerId);
+                        command.ExecuteNonQuery();
+                        
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
+            }
         }
 
         // Get all accounts from the database
@@ -211,17 +261,34 @@ namespace AppQuanLyV1
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM Accounts";
+                
+                // Ensure date columns exist
+                EnsureAccountDateColumns(connection);
+                
+                string query = "SELECT Email, CustomerCount, StartDate, ExpireDate FROM Accounts";
                 SqlCommand command = new SqlCommand(query, connection);
                 SqlDataReader reader = command.ExecuteReader();
 
                 while (reader.Read())
                 {
-                    accounts.Add(new Account
+                    var account = new Account
                     {
                         Email = reader["Email"].ToString(),
                         CustomerCount = Convert.ToInt32(reader["CustomerCount"])
-                    });
+                    };
+                    
+                    // Handle nullable date fields
+                    if (reader["StartDate"] != DBNull.Value)
+                        account.StartDate = Convert.ToDateTime(reader["StartDate"]);
+                    else
+                        account.StartDate = DateTime.MinValue;
+                        
+                    if (reader["ExpireDate"] != DBNull.Value)
+                        account.ExpireDate = Convert.ToDateTime(reader["ExpireDate"]);
+                    else
+                        account.ExpireDate = DateTime.MinValue;
+                        
+                    accounts.Add(account);
                 }
             }
 
@@ -242,6 +309,26 @@ namespace AppQuanLyV1
             }
         }
 
+        // Add a new account with dates
+        public void AddAccountWithDates(Account account)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                
+                // First, check if StartDate and ExpireDate columns exist
+                EnsureAccountDateColumns(connection);
+                
+                string query = "INSERT INTO Accounts (Email, CustomerCount, StartDate, ExpireDate) VALUES (@Email, @CustomerCount, @StartDate, @ExpireDate)";
+                SqlCommand command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@Email", account.Email);
+                command.Parameters.AddWithValue("@CustomerCount", account.CustomerCount);
+                command.Parameters.AddWithValue("@StartDate", account.StartDate);
+                command.Parameters.AddWithValue("@ExpireDate", account.ExpireDate);
+                command.ExecuteNonQuery();
+            }
+        }
+
         // Update an existing account
         public void UpdateAccount(Account account, string originalEmail)
         {
@@ -252,6 +339,36 @@ namespace AppQuanLyV1
                 SqlCommand command = new SqlCommand(query, connection);
                 command.Parameters.AddWithValue("@Email", account.Email);
                 command.Parameters.AddWithValue("@CustomerCount", account.CustomerCount);
+                command.Parameters.AddWithValue("@OriginalEmail", originalEmail);
+                command.ExecuteNonQuery();
+            }
+        }
+
+        // Update an existing account with dates
+        public void UpdateAccountWithDates(Account account, string originalEmail)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                
+                // Ensure date columns exist
+                EnsureAccountDateColumns(connection);
+                
+                string query = "UPDATE Accounts SET Email = @Email, CustomerCount = @CustomerCount, StartDate = @StartDate, ExpireDate = @ExpireDate WHERE Email = @OriginalEmail";
+                SqlCommand command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@Email", account.Email);
+                command.Parameters.AddWithValue("@CustomerCount", account.CustomerCount);
+                
+                if (account.StartDate != DateTime.MinValue)
+                    command.Parameters.AddWithValue("@StartDate", account.StartDate);
+                else
+                    command.Parameters.AddWithValue("@StartDate", DBNull.Value);
+                
+                if (account.ExpireDate != DateTime.MinValue)
+                    command.Parameters.AddWithValue("@ExpireDate", account.ExpireDate);
+                else
+                    command.Parameters.AddWithValue("@ExpireDate", DBNull.Value);
+                
                 command.Parameters.AddWithValue("@OriginalEmail", originalEmail);
                 command.ExecuteNonQuery();
             }
@@ -360,6 +477,42 @@ namespace AppQuanLyV1
                 command.Parameters.AddWithValue("@Email", email);
                 int count = (int)command.ExecuteScalar();
                 return count > 0;
+            }
+        }
+
+        // Ensure account table has date columns
+        private void EnsureAccountDateColumns(SqlConnection connection)
+        {
+            // Check if StartDate column exists
+            string checkStartDateQuery = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Accounts' AND COLUMN_NAME = 'StartDate'";
+            using (SqlCommand checkCommand = new SqlCommand(checkStartDateQuery, connection))
+            {
+                int columnCount = (int)checkCommand.ExecuteScalar();
+                if (columnCount == 0)
+                {
+                    // Add StartDate column
+                    string addQuery = "ALTER TABLE Accounts ADD StartDate DATETIME NULL";
+                    using (SqlCommand addCommand = new SqlCommand(addQuery, connection))
+                    {
+                        addCommand.ExecuteNonQuery();
+                    }
+                }
+            }
+            
+            // Check if ExpireDate column exists
+            string checkExpireDateQuery = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Accounts' AND COLUMN_NAME = 'ExpireDate'";
+            using (SqlCommand checkCommand = new SqlCommand(checkExpireDateQuery, connection))
+            {
+                int columnCount = (int)checkCommand.ExecuteScalar();
+                if (columnCount == 0)
+                {
+                    // Add ExpireDate column
+                    string addQuery = "ALTER TABLE Accounts ADD ExpireDate DATETIME NULL";
+                    using (SqlCommand addCommand = new SqlCommand(addQuery, connection))
+                    {
+                        addCommand.ExecuteNonQuery();
+                    }
+                }
             }
         }
 
@@ -506,6 +659,75 @@ namespace AppQuanLyV1
                         throw;
                     }
                 }
+            }
+        }
+
+        // Mark customer as not continuing their subscription
+        public void MarkCustomerAsNotContinuing(int customerId)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                
+                // First, check if the ContinueSubscription column exists
+                bool columnExists = false;
+                string checkColumnQuery = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Customers' AND COLUMN_NAME = 'ContinueSubscription'";
+                using (SqlCommand checkCommand = new SqlCommand(checkColumnQuery, connection))
+                {
+                    int columnCount = (int)checkCommand.ExecuteScalar();
+                    columnExists = columnCount > 0;
+                }
+
+                // If column doesn't exist, add it
+                if (!columnExists)
+                {
+                    string addColumnQuery = "ALTER TABLE Customers ADD ContinueSubscription BIT NOT NULL DEFAULT 1";
+                    using (SqlCommand addColumnCommand = new SqlCommand(addColumnQuery, connection))
+                    {
+                        addColumnCommand.ExecuteNonQuery();
+                    }
+                }
+
+                // Update the customer's ContinueSubscription status
+                string query = "UPDATE Customers SET ContinueSubscription = 0 WHERE ID = @ID";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@ID", customerId);
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        // Insert account data from the file
+        public void InsertAccountDataFromFile(string filePath)
+        {
+            var lines = System.IO.File.ReadLines(filePath);
+            foreach (var line in lines.Skip(1)) // Skip the header
+            {
+                var fields = line.Split(',');
+                if (fields.Length >= 2)
+                {
+                    var account = new Account
+                    {
+                        Email = fields[0],
+                        CustomerCount = Convert.ToInt32(fields[1])
+                    };
+
+                    InsertAccount(account);
+                }
+            }
+        }
+
+        private void InsertAccount(Account account)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                string query = "INSERT INTO Accounts (Email, CustomerCount) VALUES (@Email, @CustomerCount)";
+                SqlCommand command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@Email", account.Email);
+                command.Parameters.AddWithValue("@CustomerCount", account.CustomerCount);
+                command.ExecuteNonQuery();
             }
         }
     }

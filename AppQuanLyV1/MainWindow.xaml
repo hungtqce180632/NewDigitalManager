@@ -22,13 +22,22 @@
                             <DataGridTextColumn Header="Registration Date" Binding="{Binding RegisterDay, StringFormat=dd/MM/yyyy}" />
                             <DataGridTextColumn Header="Expiration Date" Binding="{Binding SubscriptionExpiry, StringFormat=dd/MM/yyyy}" />
                             <DataGridTextColumn Header="Email/Note" Binding="{Binding Note}" Width="*" />
+                            <DataGridTemplateColumn Header="Status">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Status}" Foreground="{Binding StatusColor}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                     
-                    <!-- Customer management buttons -->
+                    <!-- Customer management buttons - Rearranged -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,0,0,10">
                         <Button Content="Add Customer" Width="100" Height="30" Margin="0,0,10,0" Click="AddCustomerButton_Click"/>
-                        <Button Content="Delete Customer" Width="100" Height="30" Click="DeleteCustomerButton_Click"/>
+                        <Button Content="Edit" Width="80" Height="30" Margin="0,0,10,0" Click="EditButton_Click"/>
+                        <Button Content="Delete" Width="80" Height="30" Margin="0,0,10,0" Click="DeleteCustomerButton_Click"/>
+                        <Button Content="Export Data" Width="100" Height="30" Margin="0,0,10,0" Click="ExportDataButton_Click"/>
                     </StackPanel>
                 </Grid>
             </TabItem>
@@ -50,13 +59,25 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     
-                                    <TextBlock Grid.Column="0" Text="{Binding DisplayText}" Foreground="Red" 
+                                    <TextBlock Grid.Column="0" Text="{Binding DisplayText}" 
+                                               Foreground="{Binding TextColor}"
                                                VerticalAlignment="Center" TextWrapping="Wrap"/>
                                     
-                                    <Button Grid.Column="1" Content="Money-pay-text" Margin="10,0,0,0" 
-                                            Tag="{Binding CustomerId}" Click="MoneyPayTextButton_Click"/>
+                                    <Button Grid.Column="1" Content="Money-pay-text" Margin="10,0,5,0" 
+                                            Tag="{Binding CustomerId}" Click="MoneyPayTextButton_Click"
+                                            Visibility="{Binding ContinueButtonVisibility}"/>
+                                    
+                                    <Button Grid.Column="2" Content="Renew" Margin="5,0,5,0"
+                                            Tag="{Binding CustomerId}" Click="RenewButton_Click"
+                                            Visibility="{Binding ContinueButtonVisibility}"/>
+                                    
+                                    <Button Grid.Column="3" Content="Do Not Continue" Margin="5,0,0,0" 
+                                            Tag="{Binding CustomerId}" Click="DoNotContinueButton_Click"
+                                            Visibility="{Binding ContinueButtonVisibility}"/>
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>
@@ -96,6 +117,8 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
                         <TextBlock Text="Email:" Grid.Row="0" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
@@ -104,7 +127,13 @@
                         <TextBlock Text="Customer Count:" Grid.Row="1" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
                         <TextBox x:Name="AccountCustomerCountTextBox" Grid.Row="1" Grid.Column="1" Margin="0,5" Padding="5"/>
                         
-                        <StackPanel Grid.Row="0" Grid.Column="2" Grid.RowSpan="2" Orientation="Vertical" Margin="10,0,0,0">
+                        <TextBlock Text="Start Date:" Grid.Row="2" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
+                        <DatePicker x:Name="AccountStartDatePicker" Grid.Row="2" Grid.Column="1" Margin="0,5" Language="vi-VN"/>
+                        
+                        <TextBlock Text="Expiration Date:" Grid.Row="3" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
+                        <DatePicker x:Name="AccountExpirationDatePicker" Grid.Row="3" Grid.Column="1" Margin="0,5" Language="vi-VN"/>
+                        
+                        <StackPanel Grid.Row="0" Grid.Column="2" Grid.RowSpan="4" Orientation="Vertical" Margin="10,0,0,0">
                             <Button x:Name="AddAccountButton" Content="Add" Width="80" Height="30" Margin="0,0,0,5" Click="AddAccountButton_Click"/>
                             <Button x:Name="UpdateAccountButton" Content="Update" Width="80" Height="30" Margin="0,0,0,5" Click="UpdateAccountButton_Click"/>
                             <Button x:Name="DeleteAccountButton" Content="Delete" Width="80" Height="30" Click="DeleteAccountButton_Click"/>
@@ -112,8 +141,32 @@
                     </Grid>
                     
                     <!-- Accounts DataGrid -->
-                    <DataGrid x:Name="AccountsDataGrid" Grid.Row="1" AutoGenerateColumns="True" Margin="0,10" 
-                              SelectionChanged="AccountsDataGrid_SelectionChanged" IsReadOnly="True"/>
+                    <DataGrid x:Name="AccountsDataGrid" Grid.Row="1" Margin="0,10" 
+                              SelectionChanged="AccountsDataGrid_SelectionChanged" IsReadOnly="True"
+                              AutoGenerateColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="*"/>
+                            <DataGridTextColumn Header="Customer Count" Binding="{Binding CustomerCount}"/>
+                            <DataGridTextColumn Header="Start Date" Binding="{Binding StartDate, StringFormat=dd/MM/yyyy}"/>
+                            <DataGridTemplateColumn Header="Expiration Date" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ExpireDate, StringFormat=dd/MM/yyyy}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsExpired}" Value="True">
+                                                            <Setter Property="Foreground" Value="Red"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
                     
                     <!-- Status bar -->
                     <StatusBar Grid.Row="2">
@@ -122,10 +175,5 @@
                 </Grid>
             </TabItem>
         </TabControl>
-
-        <!-- Export data button -->
-        <Button Content="Export Data" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="100" Height="30" Margin="120,10,10,10" Click="ExportDataButton_Click"/>
-        <!-- Edit button -->
-        <Button Content="Edit" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="100" Height="30" Margin="230,10,10,10" Click="EditButton_Click"/>
     </Grid>
 </Window>

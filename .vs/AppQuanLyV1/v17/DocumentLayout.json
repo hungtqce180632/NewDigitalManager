@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\truon\\Desktop\\AppQuanLyMoi\\AppQuanLyV1\\NewDigitalManager\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{40A335E9-0850-4A87-956A-E1DF6E6F26D1}|AppQuanLyV1\\AppQuanLyV1.csproj|c:\\users\\truon\\desktop\\appquanlymoi\\appquanlyv1\\newdigitalmanager\\appquanlyv1\\databasehelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{40A335E9-0850-4A87-956A-E1DF6E6F26D1}|AppQuanLyV1\\AppQuanLyV1.csproj|solutionrelative:appquanlyv1\\databasehelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{40A335E9-0850-4A87-956A-E1DF6E6F26D1}|AppQuanLyV1\\AppQuanLyV1.csproj|c:\\users\\truon\\desktop\\appquanlymoi\\appquanlyv1\\newdigitalmanager\\appquanlyv1\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{40A335E9-0850-4A87-956A-E1DF6E6F26D1}|AppQuanLyV1\\AppQuanLyV1.csproj|solutionrelative:appquanlyv1\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
@@ -19,12 +23,25 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "DatabaseHelper.cs",
+              "DocumentMoniker": "C:\\Users\\truon\\Desktop\\AppQuanLyMoi\\AppQuanLyV1\\NewDigitalManager\\AppQuanLyV1\\DatabaseHelper.cs",
+              "RelativeDocumentMoniker": "AppQuanLyV1\\DatabaseHelper.cs",
+              "ToolTip": "C:\\Users\\truon\\Desktop\\AppQuanLyMoi\\AppQuanLyV1\\NewDigitalManager\\AppQuanLyV1\\DatabaseHelper.cs",
+              "RelativeToolTip": "AppQuanLyV1\\DatabaseHelper.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAIwA0AAAA/AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-03-06T08:44:51.848Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "MainWindow.xaml.cs",
               "DocumentMoniker": "C:\\Users\\truon\\Desktop\\AppQuanLyMoi\\AppQuanLyV1\\NewDigitalManager\\AppQuanLyV1\\MainWindow.xaml.cs",
               "RelativeDocumentMoniker": "AppQuanLyV1\\MainWindow.xaml.cs",
               "ToolTip": "C:\\Users\\truon\\Desktop\\AppQuanLyMoi\\AppQuanLyV1\\NewDigitalManager\\AppQuanLyV1\\MainWindow.xaml.cs",
               "RelativeToolTip": "AppQuanLyV1\\MainWindow.xaml.cs",
-              "ViewState": "AgIAAB0AAAAAAAAAAAAvwCwAAAATAAAAAAAAAA==",
+              "ViewState": "AgIAAF0AAAAAAAAAAIAzwGwAAAAHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-03-06T07:47:15.502Z",
               "EditorCaption": ""

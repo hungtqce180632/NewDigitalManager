@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace AppQuanLyV1
 {
@@ -24,8 +26,30 @@ namespace AppQuanLyV1
         private void LoadCustomers()
         {
             var customers = _dbHelper.GetAllCustomers();
+            var accounts = _dbHelper.GetAllAccounts();
+            
+            // Mark customers with expired accounts
+            foreach (var customer in customers)
+            {
+                if (!string.IsNullOrEmpty(customer.Note))
+                {
+                    var associatedAccount = accounts.FirstOrDefault(acc => acc.Email == customer.Note);
+                    if (associatedAccount != null && associatedAccount.IsExpired)
+                    {
+                        customer.Status = "Account Expired";
+                        customer.StatusColor = Brushes.Red;
+                    }
+                }
+                
+                // Check if customer subscription is expired
+                if (customer.SubscriptionExpiry < DateTime.Today)
+                {
+                    customer.Status = "Subscription Expired";
+                    customer.StatusColor = Brushes.Red;
+                }
+            }
+            
             CustomersDataGrid.ItemsSource = customers;
-
             LoadExpiredCustomers();
         }
 
@@ -37,12 +61,32 @@ namespace AppQuanLyV1
             
             foreach (var customer in expiredCustomers)
             {
-                ExpiredCustomersListView.Items.Add(new ExpiredCustomerItem 
+                var item = new ExpiredCustomerItem 
                 { 
                     CustomerId = customer.Id,
                     DisplayText = $"{customer.Name} - Expired on {customer.SubscriptionExpiry:dd/MM/yyyy}",
-                    ReminderText = $"Chào bạn {customer.Name}, gói ChatGPT Plus của bạn đã hết hạn vào {customer.SubscriptionExpiry:dd/MM/yyyy}. Bạn có muốn gia hạn không ha (0,0?!)"
-                });
+                    ReminderText = $"Chào bạn {customer.Name}, gói ChatGPT Plus của bạn đã hết hạn vào {customer.SubscriptionExpiry:dd/MM/yyyy}. Bạn có muốn gia hạn không ha (0,0?!)",
+                    IsContinuing = customer.ContinueSubscription
+                };
+
+                // Set appearance based on continuation status
+                if (!customer.ContinueSubscription)
+                {
+                    item.DisplayText += " (Not Continuing)";
+                    item.TextColor = Brushes.Gray;
+                    item.MoneyPayVisibility = Visibility.Collapsed;
+                    item.DoNotContinueVisibility = Visibility.Collapsed;
+                    item.RenewVisibility = Visibility.Visible; // Always show Renew button
+                }
+                else
+                {
+                    item.TextColor = Brushes.Red;
+                    item.MoneyPayVisibility = Visibility.Visible;
+                    item.DoNotContinueVisibility = Visibility.Visible;
+                    item.RenewVisibility = Visibility.Visible;
+                }
+
+                ExpiredCustomersListView.Items.Add(item);
             }
         }
 
@@ -62,6 +106,71 @@ namespace AppQuanLyV1
                         // Show confirmation
                         MessageBox.Show("Payment reminder text copied to clipboard!", "Text Copied", MessageBoxButton.OK, MessageBoxImage.Information);
                         break;
+                    }
+                }
+            }
+        }
+
+        // Handle the "Do Not Continue" button click
+        private void DoNotContinueButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is int customerId)
+            {
+                var result = MessageBox.Show(
+                    "Are you sure this customer does not want to continue their subscription?",
+                    "Confirm Discontinuation",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    // Mark the customer as not continuing
+                    _dbHelper.MarkCustomerAsNotContinuing(customerId);
+                    // Reload the expired customers list
+                    LoadExpiredCustomers();
+                    
+                    MessageBox.Show(
+                        "Customer marked as not continuing subscription.",
+                        "Status Updated",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+        }
+
+        // Handle the Renew button click
+        private void RenewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is int customerId)
+            {
+                // Find the customer in the database
+                Customer customerToRenew = null;
+                var expiredCustomers = _dbHelper.GetExpiredCustomers();
+                foreach (var customer in expiredCustomers)
+                {
+                    if (customer.Id == customerId)
+                    {
+                        customerToRenew = customer;
+                        break;
+                    }
+                }
+
+                if (customerToRenew != null)
+                {
+                    // Open the renewal window
+                    var renewWindow = new RenewSubscriptionWindow(customerToRenew);
+                    renewWindow.Owner = this;
+                    renewWindow.ShowDialog();
+                    
+                    // Refresh data if renewal was completed
+                    if (renewWindow.RenewalCompleted)
+                    {
+                        LoadCustomers();
+                        LoadAccounts();
+                        MessageBox.Show($"Subscription renewed for {customerToRenew.Name}.", 
+                                      "Renewal Complete", 
+                                      MessageBoxButton.OK, 
+                                      MessageBoxImage.Information);
                     }
                 }
             }
@@ -95,6 +204,7 @@ namespace AppQuanLyV1
             }
         }
 
+        // Update account panel when account is selected
         private void AccountsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (AccountsDataGrid.SelectedItem is Account selectedAccount)
@@ -105,7 +215,8 @@ namespace AppQuanLyV1
                 // Populate the fields
                 AccountEmailTextBox.Text = selectedAccount.Email;
                 AccountCustomerCountTextBox.Text = selectedAccount.CustomerCount.ToString();
-                
+                AccountStartDatePicker.SelectedDate = selectedAccount.StartDate != DateTime.MinValue ? selectedAccount.StartDate : (DateTime?)null;
+                AccountExpirationDatePicker.SelectedDate = selectedAccount.ExpireDate != DateTime.MinValue ? selectedAccount.ExpireDate : (DateTime?)null;
                 AccountStatusTextBlock.Text = $"Selected: {selectedAccount.Email}";
             }
         }
@@ -119,7 +230,7 @@ namespace AppQuanLyV1
                 var editWindow = new EditCustomerWindow(_selectedCustomer);
                 editWindow.Owner = this;
                 editWindow.ShowDialog();
-                
+
                 // Refresh the customer list if changes were saved
                 if (editWindow.ChangesSaved)
                 {
@@ -175,11 +286,15 @@ namespace AppQuanLyV1
                 var newAccount = new Account
                 {
                     Email = AccountEmailTextBox.Text,
-                    CustomerCount = customerCount
+                    CustomerCount = customerCount,
+                    StartDate = AccountStartDatePicker.SelectedDate ?? DateTime.MinValue,
+                    ExpireDate = AccountExpirationDatePicker.SelectedDate ?? DateTime.MinValue
                 };
 
-                _dbHelper.AddAccount(newAccount);
+                _dbHelper.AddAccountWithDates(newAccount);
                 LoadAccounts();
+                // Also reload customers to update the status
+                LoadCustomers();
                 AccountStatusTextBlock.Text = $"Account {newAccount.Email} added successfully.";
             }
             catch (Exception ex)
@@ -214,11 +329,15 @@ namespace AppQuanLyV1
                 var updatedAccount = new Account
                 {
                     Email = AccountEmailTextBox.Text,
-                    CustomerCount = customerCount
+                    CustomerCount = customerCount,
+                    StartDate = AccountStartDatePicker.SelectedDate ?? DateTime.MinValue,
+                    ExpireDate = AccountExpirationDatePicker.SelectedDate ?? DateTime.MinValue
                 };
 
-                _dbHelper.UpdateAccount(updatedAccount, _originalAccountEmail);
+                _dbHelper.UpdateAccountWithDates(updatedAccount, _originalAccountEmail);
                 LoadAccounts();
+                // Also reload customers to update the status of customers with this account
+                LoadCustomers();
                 AccountStatusTextBlock.Text = $"Account {updatedAccount.Email} updated successfully.";
             }
             catch (Exception ex)
@@ -266,7 +385,7 @@ namespace AppQuanLyV1
                                             "Confirm Delete", 
                                             MessageBoxButton.YesNo, 
                                             MessageBoxImage.Question);
-                
+
                 if (result == MessageBoxResult.Yes)
                 {
                     _dbHelper.DeleteCustomerWithAccountTracking(_selectedCustomer.Id);
@@ -284,7 +403,6 @@ namespace AppQuanLyV1
         private void ExportDataButton_Click(object sender, RoutedEventArgs e)
         {
             string exportFilePath = @"C:\path\to\exported_customers.csv";  // Specify the correct path
-
             try
             {
                 _dbHelper.ExportCustomersToCsv(exportFilePath);
@@ -320,7 +438,6 @@ namespace AppQuanLyV1
             {
                 // Save the new customer to the database
                 _dbHelper.InsertCustomerWithAccountTracking(newCustomer);
-                
                 // Refresh the customers list
                 LoadCustomers();
                 LoadAccounts();
@@ -336,7 +453,7 @@ namespace AppQuanLyV1
                                            "Confirm Delete", 
                                            MessageBoxButton.YesNo, 
                                            MessageBoxImage.Question);
-                
+
                 if (result == MessageBoxResult.Yes)
                 {
                     _dbHelper.DeleteCustomerWithAccountTracking(_selectedCustomer.Id);
@@ -357,5 +474,11 @@ namespace AppQuanLyV1
         public int CustomerId { get; set; }
         public string DisplayText { get; set; }
         public string ReminderText { get; set; }
+        public bool IsContinuing { get; set; } = true;
+        public Brush TextColor { get; set; } = Brushes.Red;
+        public Visibility ContinueButtonVisibility { get; set; } = Visibility.Visible;
+        public Visibility MoneyPayVisibility { get; set; } = Visibility.Visible;
+        public Visibility DoNotContinueVisibility { get; set; } = Visibility.Visible;
+        public Visibility RenewVisibility { get; set; } = Visibility.Visible;
     }
 }
