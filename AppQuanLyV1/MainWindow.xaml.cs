@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -8,12 +9,15 @@ namespace AppQuanLyV1
     {
         private DatabaseHelper _dbHelper;
         private Customer _selectedCustomer;
+        private Account _selectedAccount;
+        private string _originalAccountEmail; // To store the original email for updates
 
         public MainWindow()
         {
             InitializeComponent();
             _dbHelper = new DatabaseHelper();
             LoadCustomers();
+            LoadAccounts();
         }
 
         // Load customer data into DataGrid
@@ -22,16 +26,62 @@ namespace AppQuanLyV1
             var customers = _dbHelper.GetAllCustomers();
             CustomersDataGrid.ItemsSource = customers;
 
+            LoadExpiredCustomers();
+        }
+
+        // Load expired customers into the ListView
+        private void LoadExpiredCustomers()
+        {
+            ExpiredCustomersListView.Items.Clear();
             var expiredCustomers = _dbHelper.GetExpiredCustomers();
+            
             foreach (var customer in expiredCustomers)
             {
-                var listItem = new ListBoxItem
-                {
-                    Content = $"{customer.Name} - Expired on {customer.SubscriptionExpiry:dd/MM/yyyy}",
-                    Foreground = System.Windows.Media.Brushes.Red
-                };
-                ExpiredCustomersList.Items.Add(listItem);
+                ExpiredCustomersListView.Items.Add(new ExpiredCustomerItem 
+                { 
+                    CustomerId = customer.Id,
+                    DisplayText = $"{customer.Name} - Expired on {customer.SubscriptionExpiry:dd/MM/yyyy}",
+                    ReminderText = $"Chào bạn {customer.Name}, gói ChatGPT Plus của bạn đã hết hạn vào {customer.SubscriptionExpiry:dd/MM/yyyy}. Bạn có muốn gia hạn không ha (0,0?!)"
+                });
             }
+        }
+
+        // Handle the Money-pay-text button click
+        private void MoneyPayTextButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is int customerId)
+            {
+                // Find the customer item in the ListView
+                foreach (ExpiredCustomerItem item in ExpiredCustomersListView.Items)
+                {
+                    if (item.CustomerId == customerId)
+                    {
+                        // Copy reminder text to clipboard
+                        Clipboard.SetText(item.ReminderText);
+                        
+                        // Show confirmation
+                        MessageBox.Show("Payment reminder text copied to clipboard!", "Text Copied", MessageBoxButton.OK, MessageBoxImage.Information);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Load accounts data into AccountsDataGrid
+        private void LoadAccounts()
+        {
+            var accounts = _dbHelper.GetAllAccounts();
+            AccountsDataGrid.ItemsSource = accounts;
+            ClearAccountFields();
+        }
+
+        private void ClearAccountFields()
+        {
+            AccountEmailTextBox.Text = "";
+            AccountCustomerCountTextBox.Text = "";
+            _selectedAccount = null;
+            _originalAccountEmail = null;
+            AccountStatusTextBlock.Text = "Ready";
         }
 
         // Handle the selection of a customer in the DataGrid
@@ -45,18 +95,37 @@ namespace AppQuanLyV1
             }
         }
 
-        // Open the customer editing tab when the Edit button is clicked
+        private void AccountsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (AccountsDataGrid.SelectedItem is Account selectedAccount)
+            {
+                _selectedAccount = selectedAccount;
+                _originalAccountEmail = selectedAccount.Email;
+                
+                // Populate the fields
+                AccountEmailTextBox.Text = selectedAccount.Email;
+                AccountCustomerCountTextBox.Text = selectedAccount.CustomerCount.ToString();
+                
+                AccountStatusTextBlock.Text = $"Selected: {selectedAccount.Email}";
+            }
+        }
+
+        // Open the customer editing window when the Edit button is clicked
         private void EditButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedCustomer != null)
             {
-                // Show the Edit Customer tab and populate fields with the selected customer’s data
-                EditCustomerTab.Visibility = Visibility.Visible;
-                EditCustomerName.Text = _selectedCustomer.Name;
-                EditCustomerPackage.Text = _selectedCustomer.SubscriptionPackage;
-                EditCustomerEmail.Text = _selectedCustomer.Note;
-                EditCustomerRegistrationDate.SelectedDate = _selectedCustomer.RegisterDay;
-                EditCustomerExpirationDate.SelectedDate = _selectedCustomer.SubscriptionExpiry;
+                // Create and show the edit window
+                var editWindow = new EditCustomerWindow(_selectedCustomer);
+                editWindow.Owner = this;
+                editWindow.ShowDialog();
+                
+                // Refresh the customer list if changes were saved
+                if (editWindow.ChangesSaved)
+                {
+                    LoadCustomers();
+                    LoadAccounts(); // Also refresh accounts to reflect any changes to customer counts
+                }
             }
             else
             {
@@ -87,6 +156,130 @@ namespace AppQuanLyV1
             }
         }
 
+        private void AddAccountButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(AccountEmailTextBox.Text))
+                {
+                    MessageBox.Show("Please enter an email address.");
+                    return;
+                }
+
+                if (!int.TryParse(AccountCustomerCountTextBox.Text, out int customerCount))
+                {
+                    MessageBox.Show("Please enter a valid number for customer count.");
+                    return;
+                }
+
+                var newAccount = new Account
+                {
+                    Email = AccountEmailTextBox.Text,
+                    CustomerCount = customerCount
+                };
+
+                _dbHelper.AddAccount(newAccount);
+                LoadAccounts();
+                AccountStatusTextBlock.Text = $"Account {newAccount.Email} added successfully.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error adding account: {ex.Message}");
+                AccountStatusTextBlock.Text = "Error adding account.";
+            }
+        }
+
+        private void UpdateAccountButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_selectedAccount == null || string.IsNullOrEmpty(_originalAccountEmail))
+                {
+                    MessageBox.Show("Please select an account to update.");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(AccountEmailTextBox.Text))
+                {
+                    MessageBox.Show("Please enter an email address.");
+                    return;
+                }
+
+                if (!int.TryParse(AccountCustomerCountTextBox.Text, out int customerCount))
+                {
+                    MessageBox.Show("Please enter a valid number for customer count.");
+                    return;
+                }
+
+                var updatedAccount = new Account
+                {
+                    Email = AccountEmailTextBox.Text,
+                    CustomerCount = customerCount
+                };
+
+                _dbHelper.UpdateAccount(updatedAccount, _originalAccountEmail);
+                LoadAccounts();
+                AccountStatusTextBlock.Text = $"Account {updatedAccount.Email} updated successfully.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error updating account: {ex.Message}");
+                AccountStatusTextBlock.Text = "Error updating account.";
+            }
+        }
+
+        private void DeleteAccountButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_selectedAccount == null || string.IsNullOrEmpty(_originalAccountEmail))
+                {
+                    MessageBox.Show("Please select an account to delete.");
+                    return;
+                }
+
+                var result = MessageBox.Show($"Are you sure you want to delete the account {_originalAccountEmail}?", 
+                                            "Confirm Deletion", 
+                                            MessageBoxButton.YesNo, 
+                                            MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    _dbHelper.DeleteAccount(_originalAccountEmail);
+                    LoadAccounts();
+                    AccountStatusTextBlock.Text = $"Account {_originalAccountEmail} deleted successfully.";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error deleting account: {ex.Message}");
+                AccountStatusTextBlock.Text = "Error deleting account.";
+            }
+        }
+
+        // Delete a customer (with account tracking)
+        private void DeleteCustomer_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedCustomer != null)
+            {
+                var result = MessageBox.Show($"Are you sure you want to delete {_selectedCustomer.Name}?", 
+                                            "Confirm Delete", 
+                                            MessageBoxButton.YesNo, 
+                                            MessageBoxImage.Question);
+                
+                if (result == MessageBoxResult.Yes)
+                {
+                    _dbHelper.DeleteCustomerWithAccountTracking(_selectedCustomer.Id);
+                    LoadCustomers();
+                    LoadAccounts(); // Refresh accounts to reflect updated counts
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a customer to delete");
+            }
+        }
+
         // Export customer data to CSV
         private void ExportDataButton_Click(object sender, RoutedEventArgs e)
         {
@@ -102,5 +295,67 @@ namespace AppQuanLyV1
                 MessageBox.Show($"An error occurred: {ex.Message}");
             }
         }
+
+        // Add new customer
+        private void AddCustomerButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Create a new empty customer object
+            var newCustomer = new Customer
+            {
+                Name = "",
+                SubscriptionPackage = "goi1",
+                RegisterDay = DateTime.Today,
+                SubscriptionExpiry = DateTime.Today.AddMonths(1),
+                LastActivity = DateTime.Today,
+                Note = ""
+            };
+
+            // Create and show the edit window with the new customer
+            var editWindow = new EditCustomerWindow(newCustomer);
+            editWindow.Owner = this;
+            editWindow.Title = "Add New Customer";
+            editWindow.ShowDialog();
+
+            if (editWindow.ChangesSaved)
+            {
+                // Save the new customer to the database
+                _dbHelper.InsertCustomerWithAccountTracking(newCustomer);
+                
+                // Refresh the customers list
+                LoadCustomers();
+                LoadAccounts();
+            }
+        }
+
+        // Delete selected customer
+        private void DeleteCustomerButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedCustomer != null)
+            {
+                var result = MessageBox.Show($"Are you sure you want to delete {_selectedCustomer.Name}?", 
+                                           "Confirm Delete", 
+                                           MessageBoxButton.YesNo, 
+                                           MessageBoxImage.Question);
+                
+                if (result == MessageBoxResult.Yes)
+                {
+                    _dbHelper.DeleteCustomerWithAccountTracking(_selectedCustomer.Id);
+                    LoadCustomers();
+                    LoadAccounts(); // Refresh accounts to reflect updated counts
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a customer to delete");
+            }
+        }
+    }
+
+    // Helper class to store expired customer data for the ListView
+    public class ExpiredCustomerItem
+    {
+        public int CustomerId { get; set; }
+        public string DisplayText { get; set; }
+        public string ReminderText { get; set; }
     }
 }

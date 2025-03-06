@@ -1,0 +1,58 @@
+<Window x:Class="AppQuanLyV1.EditCustomerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="Edit Customer" Height="350" Width="400" WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <Style TargetType="DatePicker">
+            <Setter Property="SelectedDateFormat" Value="Short" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="10">
+        <StackPanel>
+            <TextBlock Text="Customer Details" FontSize="16" Margin="0,0,0,15"/>
+            
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Text="Name:" Grid.Row="0" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
+                <TextBox x:Name="CustomerNameTextBox" Grid.Row="0" Grid.Column="1" Margin="0,5" Padding="5"/>
+                
+                <TextBlock Text="Package:" Grid.Row="1" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CustomerPackageComboBox" Grid.Row="1" Grid.Column="1" Margin="0,5" Padding="5" SelectionChanged="CustomerPackageComboBox_SelectionChanged">
+                    <ComboBoxItem Content="goi1"/>
+                    <ComboBoxItem Content="goi3"/>
+                    <ComboBoxItem Content="goi6"/>
+                    <ComboBoxItem Content="goi12"/>
+                </ComboBox>
+                
+                <TextBlock Text="Email/Note:" Grid.Row="2" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CustomerEmailComboBox" Grid.Row="2" Grid.Column="1" Margin="0,5" Padding="5" IsEditable="True"/>
+                
+                <TextBlock Text="Registration Date:" Grid.Row="3" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
+                <DatePicker x:Name="CustomerRegistrationDatePicker" Grid.Row="3" Grid.Column="1" Margin="0,5" 
+                            SelectedDateChanged="CustomerRegistrationDatePicker_SelectedDateChanged"
+                            Language="vi-VN" />
+                
+                <TextBlock Text="Expiration Date:" Grid.Row="4" Grid.Column="0" Margin="0,5,10,5" VerticalAlignment="Center"/>
+                <DatePicker x:Name="CustomerExpirationDatePicker" Grid.Row="4" Grid.Column="1" Margin="0,5" IsEnabled="False"
+                            Language="vi-VN" />
+            </Grid>
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button x:Name="CancelButton" Content="Cancel" Width="80" Height="30" Margin="0,0,10,0" Click="CancelButton_Click"/>
+                <Button x:Name="SaveButton" Content="Save" Width="80" Height="30" Click="SaveButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Window>

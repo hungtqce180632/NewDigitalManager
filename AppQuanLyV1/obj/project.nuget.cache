@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "MLXrS4n7lV4=",
+  "dgSpecHash": "WVN9ULDwd50=",
   "success": true,
-  "projectFilePath": "C:\\Users\\truon\\Desktop\\AppQuanLyMoi\\AppQuanLyV1\\AppQuanLyV1\\AppQuanLyV1.csproj",
+  "projectFilePath": "C:\\Users\\truon\\Desktop\\AppQuanLyMoi\\AppQuanLyV1\\NewDigitalManager\\AppQuanLyV1\\AppQuanLyV1.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\truon\\.nuget\\packages\\runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
     "C:\\Users\\truon\\.nuget\\packages\\runtime.win-arm64.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-arm64.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
