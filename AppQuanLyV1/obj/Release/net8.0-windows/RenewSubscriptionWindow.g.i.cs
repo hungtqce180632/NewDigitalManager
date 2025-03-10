@@ -100,7 +100,7 @@ namespace AppQuanLyV1 {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/AppQuanLyV1;component/renewsubscriptionwindow.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/AppQuanLyV1;V1.0.0.0;component/renewsubscriptionwindow.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\RenewSubscriptionWindow.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

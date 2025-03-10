@@ -5,7 +5,7 @@
     <version>1.0.0</version>
     <authors>AppQuanLyV1</authors>
     <description>Package Description</description>
-    <repository type="git" commit="e2368970b6509a7fd1c458ba659682977f86ca81" />
+    <repository type="git" commit="5834340f1e858edc6e5654f43613c34d07c8ace5" />
     <dependencies>
       <group targetFramework="net8.0-windows7.0">
         <dependency id="System.Data.SqlClient" version="4.9.0" exclude="Build,Analyzers" />

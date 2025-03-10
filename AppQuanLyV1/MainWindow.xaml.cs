@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Data;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace AppQuanLyV1
 {
@@ -1080,4 +1081,47 @@ namespace AppQuanLyV1
         public Visibility DoNotContinueVisibility { get; set; } = Visibility.Visible;
         public Visibility RenewVisibility { get; set; } = Visibility.Visible;
     }
+
+    #region Helper Classes
+    
+    /// <summary>
+    /// ViewModel class for displaying expiring customers in the ListView
+    /// </summary>
+    public class ExpiringCustomerViewModel
+    {
+        public int CustomerId { get; }
+        public string DisplayText { get; }
+        public Brush TextColor { get; }
+        public DateTime ExpiryDate { get; }
+        public Visibility ContinueButtonVisibility { get; }
+        
+        public ExpiringCustomerViewModel(Customer customer)
+        {
+            CustomerId = customer.Id;
+            ExpiryDate = customer.SubscriptionExpiry;
+            
+            // Determine days remaining
+            TimeSpan timeRemaining = customer.SubscriptionExpiry - DateTime.Now;
+            int daysRemaining = (int)timeRemaining.TotalDays;
+            
+            // Create display text
+            if (daysRemaining < 0)
+            {
+                DisplayText = $"{customer.Name} - Expired {Math.Abs(daysRemaining)} days ago ({customer.SubscriptionExpiry:dd/MM/yyyy}) - {customer.Note}";
+                TextColor = Brushes.Red;
+            }
+            else
+            {
+                DisplayText = $"{customer.Name} - Expires in {daysRemaining} days ({customer.SubscriptionExpiry:dd/MM/yyyy}) - {customer.Note}";
+                TextColor = daysRemaining <= 7 ? Brushes.Orange : Brushes.Green;
+            }
+            
+            // Hide buttons if customer is marked as "do not continue"
+            ContinueButtonVisibility = customer.ContinueSubscription ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+    
+    // Remove the duplicate converter class definitions as they already exist in separate files
+    
+    #endregion
 }

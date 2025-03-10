@@ -4,8 +4,194 @@
              xmlns:local="clr-namespace:AppQuanLyV1"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <local:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
-        <local:ContinueConverter x:Key="ContinueConverter"/>
-        <local:ContinueToColorConverter x:Key="ContinueToColorConverter"/>
+        <ResourceDictionary>
+            <!-- macOS Color Palette -->
+            <Color x:Key="MacWindowBackground">#F2F2F2</Color>
+            <Color x:Key="MacAccentColor">#0071E3</Color>
+            <Color x:Key="MacControlBorderColor">#DBDBDB</Color>
+            <Color x:Key="MacTextColor">#333333</Color>
+            <Color x:Key="MacSecondaryTextColor">#737373</Color>
+            <Color x:Key="MacHeaderColor">#5E5E5E</Color>
+            
+            <!-- Brushes -->
+            <SolidColorBrush x:Key="MacWindowBackgroundBrush" Color="{StaticResource MacWindowBackground}"/>
+            <SolidColorBrush x:Key="MacAccentBrush" Color="{StaticResource MacAccentColor}"/>
+            <SolidColorBrush x:Key="MacControlBorderBrush" Color="{StaticResource MacControlBorderColor}"/>
+            <SolidColorBrush x:Key="MacTextBrush" Color="{StaticResource MacTextColor}"/>
+            <SolidColorBrush x:Key="MacSecondaryTextBrush" Color="{StaticResource MacSecondaryTextColor}"/>
+            <SolidColorBrush x:Key="MacHeaderBrush" Color="{StaticResource MacHeaderColor}"/>
+            
+            <!-- Traffic Light Colors -->
+            <SolidColorBrush x:Key="MacCloseButtonBrush" Color="#FF5F57"/>
+            <SolidColorBrush x:Key="MacMinimizeButtonBrush" Color="#FEBC2E"/>
+            <SolidColorBrush x:Key="MacMaximizeButtonBrush" Color="#28C840"/>
+            
+            <!-- Base Styles -->
+            <Style x:Key="MacWindowStyle" TargetType="Window">
+                <Setter Property="Background" Value="{StaticResource MacWindowBackgroundBrush}"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Foreground" Value="{StaticResource MacTextBrush}"/>
+                <Setter Property="WindowStyle" Value="None"/>
+                <Setter Property="AllowsTransparency" Value="True"/>
+                <Setter Property="ResizeMode" Value="CanResizeWithGrip"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MacControlBorderBrush}"/>
+            </Style>
+            
+            <Style x:Key="MacButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MacControlBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="12,5"/>
+                <Setter Property="Foreground" Value="{StaticResource MacTextBrush}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="5">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E5E5E5"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="#D1D1D1"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
+            <Style x:Key="MacPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource MacButtonStyle}">
+                <Setter Property="Background" Value="{StaticResource MacAccentBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MacAccentBrush}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#0077ED"/>
+                        <Setter Property="BorderBrush" Value="#0077ED"/>
+                    </Trigger>
+                    <Trigger Property="IsPressed" Value="True">
+                        <Setter Property="Background" Value="#0062C7"/>
+                        <Setter Property="BorderBrush" Value="#0062C7"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            
+            <Style x:Key="MacTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Background" Value="White"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MacControlBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="8,5"/>
+                <Setter Property="Foreground" Value="{StaticResource MacTextBrush}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="5">
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
+            <Style x:Key="MacComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="Background" Value="White"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MacControlBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="8,5"/>
+                <Setter Property="Foreground" Value="{StaticResource MacTextBrush}"/>
+            </Style>
+            
+            <Style x:Key="MacDatePickerStyle" TargetType="DatePicker">
+                <Setter Property="BorderBrush" Value="{StaticResource MacControlBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="8,5"/>
+                <Setter Property="Foreground" Value="{StaticResource MacTextBrush}"/>
+            </Style>
+            
+            <Style x:Key="MacDataGridStyle" TargetType="DataGrid">
+                <Setter Property="Background" Value="White"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MacControlBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="RowBackground" Value="White"/>
+                <Setter Property="AlternatingRowBackground" Value="#F9F9F9"/>
+                <Setter Property="HorizontalGridLinesBrush" Value="#F0F0F0"/>
+                <Setter Property="VerticalGridLinesBrush" Value="#F0F0F0"/>
+                <Setter Property="HeadersVisibility" Value="Column"/>
+            </Style>
+            
+            <Style x:Key="MacDataGridColumnHeaderStyle" TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="#F5F5F5"/>
+                <Setter Property="Foreground" Value="{StaticResource MacHeaderBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MacControlBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+            
+            <Style x:Key="MacTabControlStyle" TargetType="TabControl">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+            </Style>
+            
+            <Style x:Key="MacTabItemStyle" TargetType="TabItem">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Border x:Name="Border" 
+                                    Background="Transparent" 
+                                    BorderThickness="0,0,0,2" 
+                                    BorderBrush="Transparent"
+                                    Padding="15,8">
+                                <ContentPresenter x:Name="ContentSite"
+                                                 VerticalAlignment="Center"
+                                                 HorizontalAlignment="Center"
+                                                 ContentSource="Header"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource MacAccentBrush}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource MacAccentBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="False">
+                                    <Setter Property="Foreground" Value="{StaticResource MacSecondaryTextBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Border" Property="Background" Value="#F0F0F0"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
+            <!-- Apply styles as defaults -->
+            <Style TargetType="Button" BasedOn="{StaticResource MacButtonStyle}"/>
+            <Style TargetType="TextBox" BasedOn="{StaticResource MacTextBoxStyle}"/>
+            <Style TargetType="ComboBox" BasedOn="{StaticResource MacComboBoxStyle}"/>
+            <Style TargetType="DatePicker" BasedOn="{StaticResource MacDatePickerStyle}"/>
+            <Style TargetType="DataGrid" BasedOn="{StaticResource MacDataGridStyle}"/>
+            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MacDataGridColumnHeaderStyle}"/>
+            <Style TargetType="TabControl" BasedOn="{StaticResource MacTabControlStyle}"/>
+            <Style TargetType="TabItem" BasedOn="{StaticResource MacTabItemStyle}"/>
+            
+            <!-- Converters - moved inside ResourceDictionary -->
+            <local:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
+            <local:ContinueConverter x:Key="ContinueConverter"/>
+            <local:ContinueToColorConverter x:Key="ContinueToColorConverter"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
