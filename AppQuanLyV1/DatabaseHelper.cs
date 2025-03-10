@@ -74,8 +74,8 @@ namespace AppQuanLyV1
                 string query;
                 if (columnExists)
                 {
-                    // Only show customers with ContinueSubscription = 1 or NULL
-                    query = "SELECT *, ISNULL(ContinueSubscription, 1) AS ContinueStatus FROM Customers WHERE ISNULL(ContinueSubscription, 1) = 1";
+                    // Get ALL customers, both continuing and not continuing
+                    query = "SELECT *, ISNULL(ContinueSubscription, 1) AS ContinueStatus FROM Customers";
                 }
                 else
                 {
@@ -729,6 +729,118 @@ namespace AppQuanLyV1
                 command.Parameters.AddWithValue("@CustomerCount", account.CustomerCount);
                 command.ExecuteNonQuery();
             }
+        }
+
+        // Method to mark customer as not continuing and mark email as expired
+        public void MarkCustomerAsNotContinuingAndClearEmail(int customerId)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                
+                // First, get the customer's current email to update account counts
+                string currentEmail = null;
+                string checkEmailQuery = "SELECT AccountEmail FROM Customers WHERE ID = @ID";
+                using (SqlCommand checkCommand = new SqlCommand(checkEmailQuery, connection))
+                {
+                    checkCommand.Parameters.AddWithValue("@ID", customerId);
+                    var result = checkCommand.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        currentEmail = result.ToString();
+                    }
+                }
+                
+                // Update customer to not continue and set AccountEmail to "Expired"
+                string updateQuery = "UPDATE Customers SET ContinueSubscription = 0, AccountEmail = 'Expired' WHERE ID = @ID";
+                using (SqlCommand updateCommand = new SqlCommand(updateQuery, connection))
+                {
+                    updateCommand.Parameters.AddWithValue("@ID", customerId);
+                    updateCommand.ExecuteNonQuery();
+                }
+                
+                // If the customer had an account associated, update customer count
+                if (!string.IsNullOrEmpty(currentEmail) && currentEmail != "Expired" && AccountExists(currentEmail))
+                {
+                    UpdateAccountCustomerCount(currentEmail, false);
+                }
+            }
+        }
+
+        // Fix existing records that are marked as not continuing but still have an email
+        public void FixExistingNotContinuingEmails()
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                
+                // Get list of customers marked as not continuing but with emails
+                Dictionary<int, string> customersToFix = new Dictionary<int, string>();
+                string findQuery = "SELECT ID, AccountEmail FROM Customers WHERE ContinueSubscription = 0 AND AccountEmail != 'Expired' AND AccountEmail IS NOT NULL AND AccountEmail != ''";
+                using (SqlCommand findCommand = new SqlCommand(findQuery, connection))
+                {
+                    using (SqlDataReader reader = findCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int id = Convert.ToInt32(reader["ID"]);
+                            string email = reader["AccountEmail"].ToString();
+                            customersToFix.Add(id, email);
+                        }
+                    }
+                }
+                
+                // Update each customer's email to "Expired" and adjust account counts
+                foreach (var customer in customersToFix)
+                {
+                    // Update to "Expired"
+                    string updateQuery = "UPDATE Customers SET AccountEmail = 'Expired' WHERE ID = @ID";
+                    using (SqlCommand updateCommand = new SqlCommand(updateQuery, connection))
+                    {
+                        updateCommand.Parameters.AddWithValue("@ID", customer.Key);
+                        updateCommand.ExecuteNonQuery();
+                    }
+                    
+                    // Decrement account count
+                    if (!string.IsNullOrEmpty(customer.Value) && AccountExists(customer.Value))
+                    {
+                        UpdateAccountCustomerCount(customer.Value, false);
+                    }
+                }
+            }
+        }
+
+        // Get customer by ID
+        public Customer GetCustomerById(int customerId)
+        {
+            Customer customer = null;
+            
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                string query = "SELECT *, ISNULL(ContinueSubscription, 1) AS ContinueStatus FROM Customers WHERE ID = @ID";
+                SqlCommand command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@ID", customerId);
+                
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        customer = new Customer
+                        {
+                            Id = Convert.ToInt32(reader["ID"]),
+                            Name = reader["FacebookLink"].ToString(),
+                            SubscriptionPackage = reader["Package"].ToString(),
+                            RegisterDay = Convert.ToDateTime(reader["RegistrationDate"]),
+                            SubscriptionExpiry = Convert.ToDateTime(reader["ExpirationDate"]),
+                            Note = reader["AccountEmail"]?.ToString(),
+                            ContinueSubscription = Convert.ToBoolean(reader["ContinueStatus"])
+                        };
+                    }
+                }
+            }
+            
+            return customer;
         }
     }
 }

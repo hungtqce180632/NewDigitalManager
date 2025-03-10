@@ -8,35 +8,107 @@
             <TabItem Header="Customer List">
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
-                    <DataGrid x:Name="CustomersDataGrid" Grid.Row="0" Margin="10" 
+                    <!-- Search and filter panel -->
+                    <Grid Grid.Row="0" Margin="10,10,10,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" Text="Search:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="SearchTextBox" Grid.Column="1" Margin="0,0,10,0" TextChanged="SearchTextBox_TextChanged"/>
+                        
+                        <TextBlock Grid.Column="2" Text="Filter:" VerticalAlignment="Center" Margin="10,0,5,0"/>
+                        <ComboBox x:Name="FilterComboBox" Grid.Column="3" Width="120" SelectionChanged="FilterComboBox_SelectionChanged"/>
+                    </Grid>
+                    
+                    <DataGrid x:Name="CustomersDataGrid" Grid.Row="1" Margin="10" 
+                              IsReadOnly="True"
                               SelectionChanged="CustomersDataGrid_SelectionChanged"
-                              AutoGenerateColumns="False">
+                              AutoGenerateColumns="False" 
+                              CanUserAddRows="False" 
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="False"
+                              SelectionMode="Single"
+                              IsManipulationEnabled="False"
+                              Background="{x:Null}"
+                              RowBackground="LightGray"
+                              AlternatingRowBackground="White">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" />
-                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
-                            <DataGridTextColumn Header="Package" Binding="{Binding SubscriptionPackage}" />
-                            <DataGridTextColumn Header="Registration Date" Binding="{Binding RegisterDay, StringFormat=dd/MM/yyyy}" />
-                            <DataGridTextColumn Header="Expiration Date" Binding="{Binding SubscriptionExpiry, StringFormat=dd/MM/yyyy}" />
-                            <DataGridTextColumn Header="Email/Note" Binding="{Binding Note}" Width="*" />
-                            <DataGridTemplateColumn Header="Status">
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Package" Binding="{Binding SubscriptionPackage}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Registration Date" Binding="{Binding RegisterDay, StringFormat=dd/MM/yyyy}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Expiration Date" Binding="{Binding SubscriptionExpiry, StringFormat=dd/MM/yyyy}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Email/Note" Binding="{Binding Note}" Width="*" IsReadOnly="True"/>
+                            <DataGridTemplateColumn Header="Status" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Status}" Foreground="{Binding StatusColor}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+                            <!-- Add a column to show ContinueSubscription status -->
+                            <DataGridTemplateColumn Header="Continue" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <Binding Path="ContinueSubscription" Converter="{StaticResource ContinueConverter}" />
+                                            </TextBlock.Text>
+                                            <TextBlock.Foreground>
+                                                <Binding Path="ContinueSubscription" Converter="{StaticResource ContinueToColorConverter}" />
+                                            </TextBlock.Foreground>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- Modified action column to ensure buttons are clickable -->
+                            <DataGridTemplateColumn Header="Actions" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Edit" 
+                                                    Tag="{Binding}" 
+                                                    Click="EditCustomerButton_Click" 
+                                                    Margin="2"
+                                                    IsHitTestVisible="True"
+                                                    Focusable="True"/>
+                                            <Button Content="Delete" 
+                                                    Tag="{Binding}" 
+                                                    Click="DeleteCustomerButton_Click" 
+                                                    Margin="2"
+                                                    IsHitTestVisible="True"
+                                                    Focusable="True"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
+                        <DataGrid.Resources>
+                            <!-- Modified style to allow clicking buttons while making rows appear unselectable -->
+                            <Style TargetType="DataGridRow">
+                                <!-- Remove IsHitTestVisible="False" to allow buttons to be clicked -->
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{x:Null}"/>
+                                        <Setter Property="BorderBrush" Value="{x:Null}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Resources>
                     </DataGrid>
                     
                     <!-- Customer management buttons - Rearranged -->
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,0,0,10">
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,0,0,10">
                         <Button Content="Add Customer" Width="100" Height="30" Margin="0,0,10,0" Click="AddCustomerButton_Click"/>
-                        <Button Content="Edit" Width="80" Height="30" Margin="0,0,10,0" Click="EditButton_Click"/>
-                        <Button Content="Delete" Width="80" Height="30" Margin="0,0,10,0" Click="DeleteCustomerButton_Click"/>
                         <Button Content="Export Data" Width="100" Height="30" Margin="0,0,10,0" Click="ExportDataButton_Click"/>
                     </StackPanel>
                 </Grid>
@@ -103,6 +175,7 @@
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
@@ -140,8 +213,23 @@
                         </StackPanel>
                     </Grid>
                     
+                    <!-- Account Filter Options -->
+                    <Grid Grid.Row="1" Margin="0,0,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" Text="View:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="AccountFilterComboBox" Grid.Column="1" Width="120" SelectionChanged="AccountFilterComboBox_SelectionChanged">
+                            <ComboBoxItem Content="All"/>
+                            <ComboBoxItem Content="Active"/>
+                        </ComboBox>
+                    </Grid>
+                    
                     <!-- Accounts DataGrid -->
-                    <DataGrid x:Name="AccountsDataGrid" Grid.Row="1" Margin="0,10" 
+                    <DataGrid x:Name="AccountsDataGrid" Grid.Row="2" Margin="0,10" 
                               SelectionChanged="AccountsDataGrid_SelectionChanged" IsReadOnly="True"
                               AutoGenerateColumns="False">
                         <DataGrid.Columns>
@@ -165,13 +253,182 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Status" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0}">
+                                                    <Binding Path="CustomerCount" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding CustomerCount}" Value="0">
+                                                            <Setter Property="Text" Value="Unused" />
+                                                            <Setter Property="Foreground" Value="Gray" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsExpired}" Value="True">
+                                                            <Setter Property="Text" Value="Expired" />
+                                                            <Setter Property="Foreground" Value="Red" />
+                                                        </DataTrigger>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsExpired}" Value="False" />
+                                                                <Condition Binding="{Binding CustomerCount, Converter={StaticResource GreaterThanZeroConverter}}" Value="True" />
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Text" Value="Active" />
+                                                            <Setter Property="Foreground" Value="Green" />
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                     
                     <!-- Status bar -->
-                    <StatusBar Grid.Row="2">
+                    <StatusBar Grid.Row="3">
                         <TextBlock x:Name="AccountStatusTextBlock" Text="Ready"/>
                     </StatusBar>
+                </Grid>
+            </TabItem>
+
+            <!-- New Financial Dashboard Tab -->
+            <TabItem Header="Financial Dashboard">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Period Selection -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" Text="Time Period:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ComboBox x:Name="PeriodComboBox" Grid.Column="1" Width="120" SelectedIndex="0" SelectionChanged="PeriodComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Current Month"/>
+                            <ComboBoxItem Content="Last Month"/>
+                            <ComboBoxItem Content="Last 3 Months"/>
+                            <ComboBoxItem Content="Custom Period"/>
+                        </ComboBox>
+                        
+                        <TextBlock Grid.Column="2" Text="From:" VerticalAlignment="Center" Margin="10,0,5,0" x:Name="FromDateLabel" Visibility="Collapsed"/>
+                        <DatePicker Grid.Column="3" x:Name="FromDatePicker" Margin="0,0,10,0" Visibility="Collapsed" SelectedDateChanged="DatePicker_SelectedDateChanged"/>
+                        <TextBlock Grid.Column="4" Text="To:" VerticalAlignment="Center" Margin="0,0,5,0" x:Name="ToDateLabel" Visibility="Collapsed"/>
+                        <DatePicker Grid.Column="5" x:Name="ToDatePicker" Visibility="Collapsed" SelectedDateChanged="DatePicker_SelectedDateChanged"/>
+                    </Grid>
+                    
+                    <!-- Financial Summary -->
+                    <Border Grid.Row="1" BorderBrush="#CCCCCC" BorderThickness="1" Padding="10" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Grid.Row="0" Text="Total Income:" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Grid.Row="0" Text="Total Expenses:" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Grid.Row="0" Text="Total Profit:" FontWeight="Bold"/>
+                            
+                            <TextBlock Grid.Column="0" Grid.Row="1" x:Name="TotalIncomeTextBlock" FontSize="24" Foreground="Green"/>
+                            <TextBlock Grid.Column="1" Grid.Row="1" x:Name="TotalExpensesTextBlock" FontSize="24" Foreground="Red"/>
+                            <TextBlock Grid.Column="2" Grid.Row="1" x:Name="TotalProfitTextBlock" FontSize="24"/>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Detailed Breakdown -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Income Breakdown -->
+                        <GroupBox Grid.Column="0" Header="Income Breakdown">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Package 1 Month:" Margin="0,5"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Package 3 Months:" Margin="0,5"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Package 6 Months:" Margin="0,5"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Package 12 Months:" Margin="0,5"/>
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Total:" Margin="0,5" FontWeight="Bold"/>
+                                
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="Package1CountTextBlock" Margin="5" HorizontalAlignment="Right"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="Package3CountTextBlock" Margin="5" HorizontalAlignment="Right"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="Package6CountTextBlock" Margin="5" HorizontalAlignment="Right"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="Package12CountTextBlock" Margin="5" HorizontalAlignment="Right"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" x:Name="TotalCustomersTextBlock" Margin="5" HorizontalAlignment="Right" FontWeight="Bold"/>
+                                
+                                <TextBlock Grid.Row="0" Grid.Column="2" x:Name="Package1IncomeTextBlock" Margin="5"/>
+                                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="Package3IncomeTextBlock" Margin="5"/>
+                                <TextBlock Grid.Row="2" Grid.Column="2" x:Name="Package6IncomeTextBlock" Margin="5"/>
+                                <TextBlock Grid.Row="3" Grid.Column="2" x:Name="Package12IncomeTextBlock" Margin="5"/>
+                                <TextBlock Grid.Row="4" Grid.Column="2" x:Name="TotalIncomeBreakdownTextBlock" Margin="5" FontWeight="Bold"/>
+                            </Grid>
+                        </GroupBox>
+                        
+                        <!-- Expense Breakdown -->
+                        <GroupBox Grid.Column="1" Header="Expense Breakdown">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Accounts:" Margin="0,5"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Total:" Margin="0,5" FontWeight="Bold"/>
+                                
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="AccountCountTextBlock" Margin="5" HorizontalAlignment="Right"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="" Margin="5" FontWeight="Bold"/>
+                                
+                                <TextBlock Grid.Row="0" Grid.Column="2" x:Name="AccountExpenseTextBlock" Margin="5"/>
+                                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="TotalExpensesBreakdownTextBlock" Margin="5" FontWeight="Bold"/>
+                            </Grid>
+                        </GroupBox>
+                    </Grid>
+                    
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                        <Button Content="Recalculate" Width="100" Height="30" Click="CalculateFinancials_Click"/>
+                        <Button Content="Export Report" Width="100" Height="30" Margin="10,0,0,0" Click="ExportFinancialReport_Click"/>
+                    </StackPanel>
                 </Grid>
             </TabItem>
         </TabControl>

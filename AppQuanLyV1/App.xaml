@@ -4,6 +4,8 @@
              xmlns:local="clr-namespace:AppQuanLyV1"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <local:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
+        <local:ContinueConverter x:Key="ContinueConverter"/>
+        <local:ContinueToColorConverter x:Key="ContinueToColorConverter"/>
     </Application.Resources>
 </Application>
